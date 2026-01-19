@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Portfolio Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background:#0e1117; color:#e6e6e6; font-family:Arial,sans-serif; margin:30px; }
+        h1,h2,h3 { margin-bottom:10px; }
+        .muted { opacity:0.6; }
+        .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:30px; }
+        .card { background:#161b22; border-radius:8px; padding:16px; }
+        .card h3 { margin:0 0 6px 0; font-size:14px; opacity:0.7; }
+        .value { font-size:20px; font-weight:bold; }
+        canvas { background:#161b22; border-radius:8px; padding:10px; }
+        table { width:100%; border-collapse:collapse; margin-top:12px; }
+        th,td { padding:10px; border-bottom:1px solid #222; text-align:left; }
+        th { opacity:0.8; }
+        .symbol-pill { display:inline-block; padding:3px 7px; margin:2px; border-radius:6px; background:#1f2937; font-size:13px; }
+        .positive { color:#4CAF50; }
+        .negative { color:#F44336; }
+    </style>
+</head>
+
+<body>
+
+<h1> Portfolio Dashboard</h1>
+<p class="muted">Timestamp: {{ timestamp }}</p>
+
+<!-- ================= LIVE METRICS ================= -->
+<div class="grid">
+    <div class="card"><h3>Regime (Live)</h3><div class="value">{{ market_state.regime }}</div></div>
+    <div class="card"><h3>Confidence (Live)</h3><div class="value">{{ market_state.confidence | round(2) }}</div></div>
+    <div class="card"><h3>Gross Target</h3><div class="value">{{ gross_target | round(2) }}</div></div>
+    <div class="card"><h3>Exposure Drift</h3><div class="value">{{ exposure_drift }}</div></div>
+    <div class="card"><h3>Protection Score</h3><div class="value">{{ protection_score if protection_score is not none else "—" }}</div></div>
+</div>
+
+<!-- ========================================================= -->
+<!-- ================= EOD SNAPSHOT (NEW) ==================== -->
+<!-- ========================================================= -->
+
+<h2> End-of-Day System Snapshot</h2>
+
+{% set e = eod or {} %}
+
+<div class="grid">
+    <div class="card"><h3>Equity (EOD)</h3><div class="value">${{ e.get("equity","—") }}</div></div>
+    <div class="card">
+        <h3>Drawdown (EOD)</h3>
+        <div class="value">
+            {% if e.get("drawdown") is not none %}
+                {{ (e.get("drawdown") * 100) | round(2) }}%
+            {% else %}—{% endif %}
+        </div>
+    </div>
+    <div class="card"><h3>Gross Exposure (EOD)</h3><div class="value">{{ e.get("gross_exposure","—") }}</div></div>
+    <div class="card"><h3>Net Exposure (EOD)</h3><div class="value">{{ e.get("net_exposure","—") }}</div></div>
+    <div class="card"><h3>Cap Pressure</h3><div class="value">{{ e.get("cap_pressure","—") }}</div></div>
+</div>
+
+<h3>Execution Quality (EOD)</h3>
+<div class="grid">
+    <div class="card"><h3>Avg Slippage (bps)</h3><div class="value">{{ e.get("avg_slippage_bps","—") }}</div></div>
+    <div class="card"><h3>Max Slippage (bps)</h3><div class="value">{{ e.get("max_slippage_bps","—") }}</div></div>
+    <div class="card"><h3>Trades Logged</h3><div class="value">{{ e.get("trades_logged","—") }}</div></div>
+</div>
+
+<h3>Exposure Mix (EOD)</h3>
+<div class="grid">
+    <div class="card"><h3>Core Weight</h3><div class="value">{{ e.get("core_weight","—") }}</div></div>
+    <div class="card"><h3>Satellite Weight</h3><div class="value">{{ e.get("satellite_weight","—") }}</div></div>
+</div>
+
+<!-- ================= EQUITY CURVE ================= -->
+<h2 style="margin-top:40px;"> Portfolio vs SPY</h2>
+<canvas id="equityChart" height="120"></canvas>
+
+<!-- ================= ALLOCATOR TARGETS ================= -->
+<h2 style="margin-top:40px;">Allocator Output (Targets)</h2>
+
+{% if allocator_targets %}
+<table>
+    <thead>
+        <tr>
+            <th>Strategy</th>
+            <th>Symbols</th>
+            <th>Target Exposure</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in allocator_targets %}
+        <tr>
+            <td><strong>{{ row.strategy }}</strong></td>
+            <td>
+                {% for sym in row.symbols %}
+                    <span class="symbol-pill">{{ sym }}</span>
+                {% endfor %}
+            </td>
+            <td>{{ (row.target_exposure * 100) | round(1) }}%</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="muted">No allocator targets yet.</p>
+{% endif %}
+
+<!-- ================= LIVE POSITIONS ================= -->
+<h2 style="margin-top:40px;">Live Positions</h2>
+{% if live_positions %}
+<table>
+    <thead>
+        <tr>
+            <th>Symbol</th><th>Qty</th><th>Value</th><th>UPL ($)</th><th>UPL (%)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for sym, pos in live_positions.items() %}
+        <tr>
+            <td><strong>{{ sym }}</strong></td>
+            <td>{{ pos.qty }}</td>
+            <td>${{ pos.market_value | round(2) }}</td>
+            <td class="{{ 'positive' if pos.upl > 0 else 'negative' }}">
+                ${{ pos.upl | round(2) }}
+            </td>
+            <td class="{{ 'positive' if pos.upl_pc > 0 else 'negative' }}">
+                {{ pos.upl_pc | round(2) }}%
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="muted">No open positions.</p>
+{% endif %}
+
+<!-- ================= DISCOVERY ================= -->
+<h2 style="margin-top:40px;">Top Discovery Candidates</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Symbol</th>
+            <th>Momentum</th>
+            <th>Mean Reversion</th>
+            <th>Volatility</th>
+            <th>Pullback</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in ranked %}
+        <tr>
+            <td>{{ r.symbol }}</td>
+            <td>{{ r.momentum_score | round(3) if r.momentum_score is not none else "—" }}</td>
+            <td>{{ r.mean_reversion_score | round(3) if r.mean_reversion_score is not none else "—" }}</td>
+            <td>{{ r.volatility | round(3) if r.volatility is not none else "—" }}</td>
+            <td>
+                {% if r.pullback_depth is not none %}
+                    {{ (r.pullback_depth * 100) | round(1) }}%
+                {% else %}—{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+const ctx = document.getElementById("equityChart").getContext("2d");
+new Chart(ctx, {
+    type: "line",
+    data: {
+        labels: {{ equity_curve.dates | default([]) | tojson }},
+        datasets: [
+            { label: "Portfolio", data: {{ equity_curve.equity | default([]) | tojson }}, borderColor:"#4CAF50", fill:false },
+            { label: "SPY", data: {{ spy_curve.equity | default([]) | tojson }}, borderColor:"#F44336", fill:false }
+        ]
+    },
+    options: {
+        responsive:true,
+        plugins:{ legend:{ display:true }},
+        scales:{ x:{ ticks:{ color:"#aaa"}}, y:{ ticks:{ color:"#aaa"}}}
+    }
+});
+</script>
+
+</body>
+</html>
