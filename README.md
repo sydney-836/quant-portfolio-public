@@ -1,4 +1,4 @@
-##Trading Execution and Risk Control Engine
+## Trading Execution and Risk Control Engine
 
 Production-grade execution layer for regime-driven systematic equity trading — safety-first, alpha-agnostic.
 
