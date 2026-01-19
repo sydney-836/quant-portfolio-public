@@ -28,7 +28,7 @@ This repository focuses on the part of the system I am currently running that mu
       web dashboard
 
 
-All trading decisions are **consumed and never created ** by this layer.
+All trading decisions are consumed and never created by this layer.
 
 ## Key Safety Features
 
