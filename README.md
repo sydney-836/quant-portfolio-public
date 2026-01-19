@@ -1,13 +1,13 @@
 ## Trading Execution and Risk Control Engine
 
-Production-grade execution layer for regime-driven systematic equity trading — safety-first, alpha-agnostic.
+Production-grade execution layer for regime-driven systematic equity trading, safety-first, alpha-agnostic.
 
 This repository contains the execution, orchestration, and monitoring components of a live trading system.  
 **No signal logic, strategy IP, or proprietary models** are included.  
 The focus is on robust engineering, risk controls, and disciplined execution.
 
 Most trading failures occur at the execution layer, not in signal generation.
-This repository focuses on the part of the system that must work reliably every day under real market constraints.
+This repository focuses on the part of the system I am currently running that must work reliably every day under real market constraints.
 ## What This Repository Demonstrates
 
 - Execution safety over aggressiveness  
@@ -28,7 +28,7 @@ This repository focuses on the part of the system that must work reliably every 
       web dashboard
 
 
-All trading decisions are **consumed — never created —** by this layer.
+All trading decisions are **consumed and never created ** by this layer.
 
 ## Key Safety Features
 
